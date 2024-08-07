@@ -9,7 +9,7 @@ from metagpt.actions.search_and_summarize import SearchAndSummarize
 from pydantic import model_validator, BaseModel
 from metagpt.utils.text import generate_prompt_chunk, reduce_message_length
 WEB_BROWSE_AND_SUMMARIZE_PROMPT = """### Requirements
-1. The bottom of this message will contain the content of the url.
+1. The bottom of this message will contain the content of the url or some more instructions for you to follow instead.
 2. Include all relevant factual information, numbers, statistics, etc., if available.
 3. Only summarize content currently present in the bottom of this message.
 4. Ensure the summary is maximum 1 sentence/bullet point. 
