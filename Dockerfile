@@ -8,9 +8,11 @@ RUN apt-get update && \
 RUN apt-get update && apt-get -y install git
 
 COPY . .
+COPY ca.pem /root/ca.pem
 RUN pip install --no-dependencies --no-cache-dir -r requirements.txt
-RUN playwright install --with-deps
-
+RUN playwright install 
+RUN playwright install-deps
+ENV SSL_CERT_FILE="/root/ca.pem"
 CMD ["python", "app.py"]
 
 EXPOSE 7860

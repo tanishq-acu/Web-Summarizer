@@ -5,15 +5,15 @@ from metagpt.schema import Message
 import asyncio
 from metagpt.tools.web_browser_engine import WebBrowserEngine
 from typing import Any, Callable, Optional, Union
+from metagpt.actions.search_and_summarize import SearchAndSummarize
 from pydantic import model_validator, BaseModel
 from metagpt.utils.text import generate_prompt_chunk, reduce_message_length
 WEB_BROWSE_AND_SUMMARIZE_PROMPT = """### Requirements
-1. The "Reference Information" section of this message will contain the content of the url.
+1. The bottom of this message will contain the content of the url.
 2. Include all relevant factual information, numbers, statistics, etc., if available.
-3. Only summarize content currently present in the Reference Information section.
-4. Ensure the summary is maximum 3 sentences/bullet points. 
+3. Only summarize content currently present in the bottom of this message.
+4. Ensure the summary is maximum 2 sentences/bullet points. 
 
-### Reference Information
 {content}
 """
 class Report(BaseModel):
@@ -21,6 +21,14 @@ class Report(BaseModel):
     links: dict[str, list[str]] = None
     summaries: list[tuple[str, str]] = None
     content: str = ""
+class AnswerQuestion(Action):
+    """Action class to answer a user's query."""
+    name: str = "AnswerQuestion"
+    i_context: Optional[str] = None
+    desc: str = "Answer a user's query."
+    async def run(self, query):
+        result = await self._aask(query)
+        return result
 class URLSummarize(Action):
     """Action class to explore the web and provide summaries of articles and webpages."""
 
@@ -29,7 +37,7 @@ class URLSummarize(Action):
     desc: str = "Provide summaries of articles and webpages."
     browse_func: Union[Callable[[list[str]], None], None] = None
     web_browser_engine: Optional[WebBrowserEngine] = None
-
+    content: Optional[str] = None
     @model_validator(mode="after")
     def validate_engine_and_run_func(self):
         if self.web_browser_engine is None:
@@ -44,7 +52,7 @@ class URLSummarize(Action):
         self,
         url: str,
         system_text: str = "You are a AI critical thinker url summarizer. Your sole purpose is to summarize the content of pages from websites or articles. Keep your summaries within 2 sentences.",
-    ) -> dict[str, str]:
+    ):
         """Run the action to browse the web and provide summaries.
 
         Args:
@@ -54,61 +62,107 @@ class URLSummarize(Action):
         Returns:
             A list with summaries.
         """
+        url = (await self._aask(f"Given this query: {url}; get the url from the query and respond with only the url itself, and if it does not exist, respond with only 'NA'.")).strip()
+        if(url == 'NA'):
+            return ["Couldn't get URL from the given query."]
         contents = await self.web_browser_engine.run(url)
-
         summaries = []
         prompt_template = WEB_BROWSE_AND_SUMMARIZE_PROMPT.format(content="{}")
-        u = contents.url
         content = contents.inner_text
+        self.content = content
         chunk_summaries = []
-        chunks = generate_prompt_chunk(content, prompt_template, self.llm.model, system_text, 4096)
+        chunks = generate_prompt_chunk(content, prompt_template, "gpt-4", system_text, 4096)
+        role = SummarizeOrSearch(content=self.content,language="en-us")
         for prompt in chunks:
-            summary = await self._aask(prompt, [system_text])
-            chunk_summaries.append(summary)
+            summary = await role.run(prompt)
+            chunk_summaries.append(summary.content)
         if len(chunk_summaries) == 1:
             summaries.append(chunk_summaries[0])
         return summaries
-class WebSummarizer(Role):
-    name: str = "David"
-    profile: str = "URL Summarizer"
-    goal: str = "Given a url or list of urls, get a summary of each of their page contents."
-    constraints: str = "Ensure the urls and summaries are accurate."
+class Summarize(Action):
+    name: str = "Summarize Tool"
+    i_context: Optional[str] = None
+    desc: str = "Provide summaries of articles and webpages."
+    async def run(self, content):
+        system_text = "You are a AI critical thinker url summarizer. Your sole purpose is to summarize the content of pages from websites or articles. Keep your summaries within 2 sentences."
+        result = await self._aask(content, [system_text])
+        return result
+class SummarizeOrSearch(Role):
+    name: str = "Alyssa"
+    profile: str = "Summarizer or Searcher"
+    goal: str = "Given some text, summarize it."
+    constraints: str = "Ensure your summary is accurate and concise."
     language: str = "en-us"
-    enable_concurrency: bool = True
-    def __init__(self, **kwargs):
+    def __init__(self, content, **kwargs):
         super().__init__(**kwargs)
-        self.set_actions([URLSummarize])
-        self._set_react_mode(RoleReactMode.BY_ORDER.value, len(self.actions))
+        self.set_actions([Summarize, SearchAndSummarize])
+        self._set_react_mode(RoleReactMode.REACT.value, 1)
+        if (content):
+            self.content = content
         if self.language not in ("en-us", "zh-cn"):
             logger.warning(f"The language `{self.language}` has not been tested, it may not work.")
-
     async def _act(self) -> Message:
         logger.info(f"{self._setting}: to do {self.rc.todo}({self.rc.todo.name})")
         todo = self.rc.todo
         msg = self.rc.memory.get(k=1)[0]
-        topic = [item.strip() for item in msg.content.split(",")]
-        research_system_text = f'Given this/these urls, get their summaries: {topic}. Please respond in {self.language}.'
-        if isinstance(todo, URLSummarize):
-            links = topic
-            todos = (
-                todo.run(url, system_text=research_system_text) for url in links if url
-            )
-            if self.enable_concurrency:
-                summaries = await asyncio.gather(*todos)
+        if isinstance(todo, Summarize):
+            result = await todo.run(msg.content)
+            ret = Message(content = result, role =self.profile, cause_by=todo)
+        elif isinstance(todo, SearchAndSummarize):
+            if (self.content):
+                result = await todo.run(self.rc.memory.get() + [Message(content = self.content, role = self.profile, cause_by = self.rc.todo)])
             else:
-                summaries = [await i for i in todos]
-            ret = Message(
-                content="\n".join("\n".join(item) for item in summaries), role=self.profile, cause_by=todo
-            )
+                result = await todo.run(self.rc.memory.get())
+            ret = Message(content = result, role = self.profile, cause_by = todo)
         else:
-            ret = Message(content=msg, role=self.profile, cause_by=self.rc.todo)
+            ret = Message(content=msg.content, role=self.profile, cause_by = self.rc.todo)
+        return ret
+class WebSummarizer(Role):
+    name: str = "David"
+    profile: str = "Web Summarizer"
+    goal: str = "Answer the user's queries. If given a url or list of urls, get a summary of each of their page contents."
+    constraints: str = "Ensure your responses are accurate."
+    language: str = "en-us"
+    enable_concurrency: bool = True
+    def __init__(self, **kwargs):
+        super().__init__(**kwargs)
+        self.set_actions([AnswerQuestion, URLSummarize])
+        self._set_react_mode(RoleReactMode.REACT.value, 1)
+        if self.language not in ("en-us", "zh-cn"):
+            logger.warning(f"The language `{self.language}` has not been tested, it may not work.")
+    async def _act(self) -> Message:
+        logger.info(f"{self._setting}: to do {self.rc.todo}({self.rc.todo.name})")
+        todo = self.rc.todo
+        msg = self.rc.memory.get(k=1)[0]
+        if isinstance(todo, URLSummarize):
+            research_system_text = f'Given this query containing a url: {msg.content}, get its summary. Please respond in {self.language}.'
+            result = await todo.run(msg.content, research_system_text)
+            ret = Message(content = "\n".join(result), role = self.profile, cause_by = todo)
+            # topic = [item.strip() for item in msg.content.split(",")]
+            # research_system_text = f'Given this/these urls, get their summaries: {topic}. Please respond in {self.language}.'
+            # links = topic
+            # todos = (
+            #     todo.run(url, system_text=research_system_text) for url in links if url
+            # )
+            # if self.enable_concurrency:
+            #     summaries = await asyncio.gather(*todos)
+            # else:
+            #     summaries = [await i for i in todos]
+            # ret = Message(
+            #     content="\n".join("\n".join(item) for item in summaries), role=self.profile, cause_by=todo
+            # )
+        elif isinstance(todo, AnswerQuestion):
+            result= await (todo.run(msg.content))
+            ret = Message(content = result, role =self.profile, cause_by=todo)
+        else:
+            ret = Message(content=msg.content, role=self.profile, cause_by = self.rc.todo)
         self.rc.memory.add(ret)
         return ret
 
-    async def react(self) -> Message:
-        msg = await super().react()
-        report = msg.content
-        return report
+    # async def react(self) -> Message:
+    #     msg = await super().react()
+    #     report = msg.content
+    #     return report
 
 if __name__ == "__main__":
     import fire
