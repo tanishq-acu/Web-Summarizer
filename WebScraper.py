@@ -12,7 +12,7 @@ WEB_BROWSE_AND_SUMMARIZE_PROMPT = """### Requirements
 1. The bottom of this message will contain the content of the url.
 2. Include all relevant factual information, numbers, statistics, etc., if available.
 3. Only summarize content currently present in the bottom of this message.
-4. Ensure the summary is maximum 2 sentences/bullet points. 
+4. Ensure the summary is maximum 1 sentence/bullet point. 
 
 {content}
 """
