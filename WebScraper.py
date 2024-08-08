@@ -110,7 +110,7 @@ class SummarizeOrSearch(Role):
             ret = Message(content = result, role =self.profile, cause_by=todo)
         elif isinstance(todo, SearchAndSummarize):
             if (self.content):
-                result = await todo.run(self.rc.memory.get() + [Message(content = self.content, role = self.profile, cause_by = self.rc.todo)])
+                result = await todo.run([Message(content = self.content, role = self.profile, cause_by = self.rc.todo)])
             else:
                 result = await todo.run(self.rc.memory.get())
             ret = Message(content = result, role = self.profile, cause_by = todo)
@@ -120,8 +120,8 @@ class SummarizeOrSearch(Role):
 class WebSummarizer(Role):
     name: str = "David"
     profile: str = "Web Summarizer"
-    goal: str = "Answer the user's queries. If given a url or list of urls, get a summary of each of their page contents."
-    constraints: str = "Ensure your responses are accurate."
+    goal: str = "Answer the user's queries. If given a url or list of urls, get a summary of each of their page contents"
+    constraints: str = "ensure your responses are accurate"
     language: str = "en-us"
     enable_concurrency: bool = True
     def __init__(self, **kwargs):
