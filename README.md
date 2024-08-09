@@ -1,4 +1,13 @@
 # Web Summarizer
+Ensure your metagpt config2.yaml is configured correctly. 
+
+
+Ensure you have added your google API to .metagpt/config2.yaml.
+
+
+Ensure the model you chose has tool calling capabilities(reccommended gpt-4o-mini)
+
+
 To build:
 docker build -t <name> path_to_app_folder
 
