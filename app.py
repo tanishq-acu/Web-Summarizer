@@ -10,7 +10,7 @@ thread = None
 class FunctionStepper:
     def __init__(self):
         self.state= 0
-        self.display_content = "Ready to start."
+        self.display_content = "Ready to start.\n"
     def next_pressed(self):
         self.state +=1
     def get_output(self):   
@@ -20,7 +20,7 @@ def processSearch(url: str | None, stepper, event):
     if url == '' or url is None:
         return "Invalid topic."
     out=  main(url, stepper, event)
-    stepper.display_content = out
+    stepper.display_content += "\nFINISH: \nDAVID:" + out
     return out
 def go_next(event):
     global thread
@@ -36,7 +36,7 @@ def start(url, stepper, event):
         return stepper.display_content
     if (stepper.state == 0):
         stepper.state += 1
-        stepper.display_content = "Starting Execution..."
+        stepper.display_content = "Starting Execution...\n"
         thread = threading.Thread(target = processSearch, args=(url, stepper, event))
         thread.start()
         return stepper.display_content
@@ -44,16 +44,17 @@ def start(url, stepper, event):
         return stepper.display_content
 def reset(stepper, event):
     global thread
-    stepper.display_content = "Ready to start."
+    stepper.display_content = "Ready to start.\n"
     if(thread is None):
         return "", ""
     while(thread.is_alive()):
         event.set()
     thread = None
     stepper.state = 0
-    stepper.display_content = "Ready to start."
+    stepper.display_content = "Ready to start.\n"
     return "", ""
 def send_to_output(stepper):
+    
     return stepper.get_output()
 def main(url: str, stepper, event):
     print("main called")
