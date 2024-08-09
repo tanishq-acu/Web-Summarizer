@@ -50,6 +50,8 @@ class URLSummarize(Action):
 
     async def run(
         self,
+        stepper,
+        event,
         url: str,
         system_text: str = "You are a AI critical thinker url summarizer. Your sole purpose is to summarize the content of pages from websites or articles. Keep your summaries within 2 sentences.",
     ):
@@ -62,6 +64,9 @@ class URLSummarize(Action):
         Returns:
             A list with summaries.
         """
+        stepper.display_content = "Now: Getting URL contents. Next: feed prompt chunks to Alyssa(SummarizeOrSearch)"
+        event.wait()
+        event.clear()
         url = (await self._aask(f"Given this query: {url}; get the url from the query and respond with only the url itself, and if it does not exist, respond with only 'NA'.")).strip()
         if(url == 'NA'):
             return ["Couldn't get URL from the given query."]
@@ -72,8 +77,11 @@ class URLSummarize(Action):
         self.content = content
         chunk_summaries = []
         chunks = generate_prompt_chunk(content, prompt_template, "gpt-4", system_text, 4096)
-        role = SummarizeOrSearch(content=self.content,language="en-us")
+        role = SummarizeOrSearch(stepper=stepper, event=event, content=self.content,language="en-us")
         for prompt in chunks:
+            stepper.display_content = f"Now: Calling Alyssa(SummarizeOrSearch) with prompt: {prompt}. Next: Alyssa to choose tool."
+            event.wait()
+            event.clear()
             summary = await role.run(prompt)
             chunk_summaries.append(summary.content)
         if len(chunk_summaries) == 1:
@@ -93,12 +101,14 @@ class SummarizeOrSearch(Role):
     goal: str = "Given some text, summarize it."
     constraints: str = "Ensure your summary is accurate and concise."
     language: str = "en-us"
-    def __init__(self, content, **kwargs):
+    def __init__(self, stepper, event, content, **kwargs):
         super().__init__(**kwargs)
         self.set_actions([Summarize, SearchAndSummarize])
         self._set_react_mode(RoleReactMode.REACT.value, 1)
         if (content):
             self.content = content
+        self.stepper = stepper
+        self.event = event
         if self.language not in ("en-us", "zh-cn"):
             logger.warning(f"The language `{self.language}` has not been tested, it may not work.")
     async def _act(self) -> Message:
@@ -106,9 +116,15 @@ class SummarizeOrSearch(Role):
         todo = self.rc.todo
         msg = self.rc.memory.get(k=1)[0]
         if isinstance(todo, Summarize):
+            self.stepper.display_content = "Now: Chosen tool: Summarize text. Next: Return Summary"
+            self.event.wait()
+            self.event.clear()
             result = await todo.run(msg.content)
             ret = Message(content = result, role =self.profile, cause_by=todo)
         elif isinstance(todo, SearchAndSummarize):
+            self.stepper.display_content = "Now: Chosen tool: Search and Summarize. Next: Return results from Search and Summarize"
+            self.event.wait()
+            self.event.clear()
             if (self.content):
                 result = await todo.run([Message(content = self.content, role = self.profile, cause_by = self.rc.todo)])
             else:
@@ -124,19 +140,27 @@ class WebSummarizer(Role):
     constraints: str = "ensure your responses are accurate"
     language: str = "en-us"
     enable_concurrency: bool = True
-    def __init__(self, **kwargs):
+    def __init__(self, stepper, event, **kwargs):
         super().__init__(**kwargs)
+        self.stepper = stepper
+        self.event = event
         self.set_actions([AnswerQuestion, URLSummarize])
         self._set_react_mode(RoleReactMode.REACT.value, 1)
         if self.language not in ("en-us", "zh-cn"):
             logger.warning(f"The language `{self.language}` has not been tested, it may not work.")
+        self.stepper.display_content = "Initialized Agent David(WebSumarizer): Next: Ask agent to choose tool between URLSummarize and AnswerQuestion."
+        self.event.wait()
+        self.event.clear()
     async def _act(self) -> Message:
         logger.info(f"{self._setting}: to do {self.rc.todo}({self.rc.todo.name})")
         todo = self.rc.todo
         msg = self.rc.memory.get(k=1)[0]
         if isinstance(todo, URLSummarize):
+            self.stepper.display_content = f"Chosen tool: URLSummarize. Next: query 'Alyssa(SummarizeOrSearch)' with 'Given this query containing a url: {msg.content}, get its summary.'"
+            self.event.wait()
+            self.event.clear()
             research_system_text = f'Given this query containing a url: {msg.content}, get its summary. Please respond in {self.language}.'
-            result = await todo.run(msg.content, research_system_text)
+            result = await todo.run(self.stepper, self.event, msg.content, research_system_text)
             ret = Message(content = "\n".join(result), role = self.profile, cause_by = todo)
             # topic = [item.strip() for item in msg.content.split(",")]
             # research_system_text = f'Given this/these urls, get their summaries: {topic}. Please respond in {self.language}.'
@@ -152,6 +176,9 @@ class WebSummarizer(Role):
             #     content="\n".join("\n".join(item) for item in summaries), role=self.profile, cause_by=todo
             # )
         elif isinstance(todo, AnswerQuestion):
+            self.stepper.display_content = f"Chosen tool: AnswerQuestion. Next: query agent with {msg.content}"
+            self.event.wait()
+            self.event.clear()
             result= await (todo.run(msg.content))
             ret = Message(content = result, role =self.profile, cause_by=todo)
         else:
