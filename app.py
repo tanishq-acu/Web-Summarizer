@@ -51,6 +51,7 @@ def reset(stepper, event):
         event.set()
     thread = None
     stepper.state = 0
+    stepper.display_content = "Ready to start."
     return "", ""
 def send_to_output(stepper):
     return stepper.get_output()
