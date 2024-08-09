@@ -1,21 +1,21 @@
 # Web Summarizer
-Ensure your metagpt config2.yaml is configured correctly. 
+-Ensure your metagpt config2.yaml is configured correctly. 
 
 
-Ensure you have added your google API to .metagpt/config2.yaml.
+-Ensure you have added your google API to .metagpt/config2.yaml.
 
 
-Ensure the model you chose has tool calling capabilities(reccommended gpt-4o-mini)
+-Ensure the model you chose has tool calling capabilities(reccommended gpt-4o-mini)
 
 
-To build:
+-To build:
 docker build -t <name> path_to_app_folder
 
 
-To run container:
+-To run container:
 docker run -v path_to_config2.yaml:/root/.metagpt/config2.yaml -p 7860:7860 <name>
 
-Navigate to localhost:7860 in your browser.
+-Navigate to localhost:7860 in your browser.
 
 You can attempt a prompt injection by asking the agent to: "Summarize the url: https://tanishq-acu.github.io/Blank/".
 
