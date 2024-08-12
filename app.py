@@ -7,6 +7,7 @@ import yaml
 import os
 import threading
 thread = None
+final = ""
 class FunctionStepper:
     def __init__(self):
         self.state= 0
@@ -16,11 +17,12 @@ class FunctionStepper:
     def get_output(self):   
         return self.display_content
 def processSearch(url: str | None, stepper, event):
-    print("starting thread")
+    global final
     if url == '' or url is None:
         return "Invalid topic."
     out=  main(url, stepper, event)
-    stepper.display_content += "\nFINISH: \nDAVID:" + out
+    # stepper.display_content += "\nFINISH: \nDAVID:" + out
+    final = "FINISH: \nDAVID:" + out
     return out
 def go_next(event):
     global thread
@@ -52,9 +54,11 @@ def reset(stepper, event):
     thread = None
     stepper.state = 0
     stepper.display_content = "Ready to start.\n"
-    return "", ""
+    return "", "", ""
+def get_final_output():
+    global final
+    return final
 def send_to_output(stepper):
-    
     return stepper.get_output()
 def main(url: str, stepper, event):
     print("main called")
@@ -81,7 +85,8 @@ if __name__ == "__main__":
     OpenAIInstrumentor().instrument()
     with gr.Blocks() as iface:
         inputs = gr.Textbox(label="URL/Instruction")
-        outputs = gr.Textbox(label = "text")
+        outputs = gr.Textbox(label = "Logs")
+        final_output = gr.Textbox(label = "Output")
         # nextBtn = gr.Button("Next")
         resetBtn = gr.Button("Reset")
         startBtn = gr.Button("Start")
@@ -89,7 +94,8 @@ if __name__ == "__main__":
         description = "Send url or instructions."
         startBtn.click(lambda x: start(x,stepper, event), inputs = inputs, outputs = outputs)
         # nextBtn.click(lambda: go_next(event), inputs = None , outputs = None)        
-        resetBtn.click(lambda: reset(stepper, event), inputs = None, outputs=(outputs,inputs))
+        resetBtn.click(lambda: reset(stepper, event), inputs = None, outputs=(outputs,inputs, final_output))
         iface.load(lambda: send_to_output(stepper), None, outputs=outputs, every = 0.3)
+        iface.load(lambda: get_final_output(), None, outputs=final_output, every = 0.3)
     iface.launch(server_port=7860, server_name="0.0.0.0")
     iface.unload(lambda: reset(stepper,event))

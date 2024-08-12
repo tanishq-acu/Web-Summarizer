@@ -116,7 +116,7 @@ class SummarizeOrSearch(Role):
         todo = self.rc.todo
         msg = self.rc.memory.get(k=1)[0]
         if isinstance(todo, Summarize):
-            self.stepper.display_content += f"ALYSSA(SUMMARIZE_OR_SEARCH): TODO: Summarize text. QUERY: {msg.content}\n\n"
+            self.stepper.display_content += f"ALYSSA(SUMMARIZE_OR_SEARCH): TODO: Summarize text. QUERY:\n {msg.content}\n"
             # self.event.wait()
             # self.event.clear()
             result = await todo.run(msg.content)
