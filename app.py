@@ -48,7 +48,7 @@ def reset(stepper, event):
     global thread
     stepper.display_content = "Ready to start.\n"
     if(thread is None):
-        return "", ""
+        return "", "", ""
     while(thread.is_alive()):
         event.set()
     thread = None
