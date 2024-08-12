@@ -3,10 +3,17 @@
 
 
 -Ensure you have added your google API to .metagpt/config2.yaml.
+
+
 I.E.
+
+
 search: 
+
     api_type: "<>"
+
     api_key: "<>"
+
     cse_id: "<>"
 
 
@@ -14,10 +21,16 @@ search:
 
 
 -Ensure you have added your Arize AI API to ./metagpt/config2.yaml.
+
+
 I.E.
+
 arize:
+
     api_key: "<>"
+
     space_key: "<>"
+    
 -To build:
 docker build -t <name> path_to_app_folder
 
