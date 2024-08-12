@@ -46,6 +46,8 @@ def start(url, stepper, event):
         return stepper.display_content
 def reset(stepper, event):
     global thread
+    global final
+    final = ""
     stepper.display_content = "Ready to start.\n"
     if(thread is None):
         return "", "", ""
