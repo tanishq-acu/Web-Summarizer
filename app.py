@@ -82,13 +82,13 @@ if __name__ == "__main__":
     with gr.Blocks() as iface:
         inputs = gr.Textbox(label="URL/Instruction")
         outputs = gr.Textbox(label = "text")
-        nextBtn = gr.Button("Next")
+        # nextBtn = gr.Button("Next")
         resetBtn = gr.Button("Reset")
         startBtn = gr.Button("Start")
         title = "Web Summarizer App"
         description = "Send url or instructions."
         startBtn.click(lambda x: start(x,stepper, event), inputs = inputs, outputs = outputs)
-        nextBtn.click(lambda: go_next(event), inputs = None , outputs = None)        
+        # nextBtn.click(lambda: go_next(event), inputs = None , outputs = None)        
         resetBtn.click(lambda: reset(stepper, event), inputs = None, outputs=(outputs,inputs))
         iface.load(lambda: send_to_output(stepper), None, outputs=outputs, every = 0.3)
     iface.launch(server_port=7860, server_name="0.0.0.0")
