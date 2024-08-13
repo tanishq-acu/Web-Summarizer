@@ -22,7 +22,7 @@ def processSearch(url: str | None, stepper, event):
         return "Invalid topic."
     out=  main(url, stepper, event)
     # stepper.display_content += "\nFINISH: \nDAVID:" + out
-    final = "FINISH: \nDAVID:" + out
+    final = "DAVID(WEB_SUMMARIZER):" + out[15::]
     return out
 def go_next(event):
     global thread
@@ -38,7 +38,7 @@ def start(url, stepper, event):
         return stepper.display_content
     if (stepper.state == 0):
         stepper.state += 1
-        stepper.display_content = "Starting Execution...\n"
+        stepper.display_content = "Starting Execution...\n\n"
         thread = threading.Thread(target = processSearch, args=(url, stepper, event))
         thread.start()
         return stepper.display_content

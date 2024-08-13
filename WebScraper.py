@@ -64,7 +64,7 @@ class URLSummarize(Action):
         Returns:
             A list with summaries.
         """
-        stepper.display_content += "DAVID(WEB_SUMMARIZER): Getting URL contents.\n"
+        stepper.display_content += "DAVID(WEB_SUMMARIZER): Extracting URL from query and scraping URL contents.\n\n"
         # event.wait()
         # event.clear()
         url = (await self._aask(f"Given this query: {url}; get the url from the query and respond with only the url itself, and if it does not exist, respond with only 'NA'.")).strip()
@@ -79,7 +79,7 @@ class URLSummarize(Action):
         chunks = generate_prompt_chunk(content, prompt_template, "gpt-4", system_text, 4096)
         role = SummarizeOrSearch(stepper=stepper, event=event, content=self.content,language="en-us")
         for prompt in chunks:
-            stepper.display_content += f"DAVID(WEB_SUMMARIZER): Calling Alyssa(SummarizeOrSearch) with URL Contents.\n"
+            stepper.display_content += f"DAVID(WEB_SUMMARIZER): Calling Alyssa(SummarizeOrSearch) with URL Contents.\n\n"
             # event.wait()
             # event.clear()
             summary = await role.run(prompt)
@@ -116,7 +116,7 @@ class SummarizeOrSearch(Role):
         todo = self.rc.todo
         msg = self.rc.memory.get(k=1)[0]
         if isinstance(todo, Summarize):
-            self.stepper.display_content += f"ALYSSA(SUMMARIZE_OR_SEARCH): TOOL: Summarize text. QUERY:\n {msg.content}\n"
+            self.stepper.display_content += f"ALYSSA(SUMMARIZE_OR_SEARCH): TOOL: Summarize text. QUERY:\n {msg.content}\n\n"
             # self.event.wait()
             # self.event.clear()
             result = await todo.run(msg.content)
@@ -148,7 +148,7 @@ class WebSummarizer(Role):
         self._set_react_mode(RoleReactMode.REACT.value, 1)
         if self.language not in ("en-us", "zh-cn"):
             logger.warning(f"The language `{self.language}` has not been tested, it may not work.")
-        self.stepper.display_content += "DAVID(WEB_SUMMARIZER): Choosing tool.\n"
+        self.stepper.display_content += "DAVID(WEB_SUMMARIZER): Choosing tool.\n\n"
         # self.event.wait()
         # self.event.clear()
     async def _act(self) -> Message:
@@ -157,13 +157,13 @@ class WebSummarizer(Role):
         msg = self.rc.memory.get(k=1)[0]
         if isinstance(todo, URLSummarize):
             research_system_text = f'Given this query containing a url: {msg.content}, get its summary. Please respond in {self.language}.'
-            self.stepper.display_content += f"DAVID(WEB_SUMMARIZER): TOOL: URLSummarize. QUERY: {research_system_text}\n"
+            self.stepper.display_content += f"DAVID(WEB_SUMMARIZER): TOOL: URLSummarize. QUERY: {research_system_text}\n\n"
             # self.event.wait()
             # self.event.clear()
             result = await todo.run(self.stepper, self.event, msg.content, research_system_text)
             ret = Message(content = "\n".join(result), role = self.profile, cause_by = todo)
         elif isinstance(todo, AnswerQuestion):
-            self.stepper.display_content += f"DAVID(WEB_SUMMARIZER): TOOL: AnswerQuestion. QUERY: {msg.content}\n"
+            self.stepper.display_content += f"DAVID(WEB_SUMMARIZER): TOOL: AnswerQuestion. QUERY: {msg.content}\n\n"
             # self.event.wait()
             # self.event.clear()
             result= await (todo.run(msg.content))
