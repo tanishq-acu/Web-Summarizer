@@ -86,18 +86,18 @@ if __name__ == "__main__":
     )
     OpenAIInstrumentor().instrument()
     with gr.Blocks() as iface:
+        gr.Markdown("## Web Summarizer")
+        gr.Markdown("Send url or instructions to begin.")
         inputs = gr.Textbox(label="URL/Instruction")
         outputs = gr.Textbox(label = "Logs")
         final_output = gr.Textbox(label = "Output")
         # nextBtn = gr.Button("Next")
-        resetBtn = gr.Button("Reset")
         startBtn = gr.Button("Start")
-        title = "Web Summarizer App"
-        description = "Send url or instructions."
+        resetBtn = gr.Button("Reset")
         startBtn.click(lambda x: start(x,stepper, event), inputs = inputs, outputs = outputs)
         # nextBtn.click(lambda: go_next(event), inputs = None , outputs = None)        
         resetBtn.click(lambda: reset(stepper, event), inputs = None, outputs=(outputs,inputs, final_output))
-        iface.load(lambda: send_to_output(stepper), None, outputs=outputs, every = 0.3)
-        iface.load(lambda: get_final_output(), None, outputs=final_output, every = 0.3)
+        iface.load(lambda: send_to_output(stepper), None, outputs=outputs, every = 0.1)
+        iface.load(lambda: get_final_output(), None, outputs=final_output, every = 0.1)
     iface.launch(server_port=7860, server_name="0.0.0.0")
     iface.unload(lambda: reset(stepper,event))

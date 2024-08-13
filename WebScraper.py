@@ -5,7 +5,7 @@ from metagpt.schema import Message
 import asyncio
 from metagpt.tools.web_browser_engine import WebBrowserEngine
 from typing import Any, Callable, Optional, Union
-from metagpt.actions.search_and_summarize import SearchAndSummarize
+from search_and_summarize import SearchAndSummarize
 from pydantic import model_validator, BaseModel
 from metagpt.utils.text import generate_prompt_chunk, reduce_message_length
 WEB_BROWSE_AND_SUMMARIZE_PROMPT = """### Requirements
@@ -116,13 +116,13 @@ class SummarizeOrSearch(Role):
         todo = self.rc.todo
         msg = self.rc.memory.get(k=1)[0]
         if isinstance(todo, Summarize):
-            self.stepper.display_content += f"ALYSSA(SUMMARIZE_OR_SEARCH): TODO: Summarize text. QUERY:\n {msg.content}\n"
+            self.stepper.display_content += f"ALYSSA(SUMMARIZE_OR_SEARCH): TOOL: Summarize text. QUERY:\n {msg.content}\n"
             # self.event.wait()
             # self.event.clear()
             result = await todo.run(msg.content)
             ret = Message(content = result, role =self.profile, cause_by=todo)
         elif isinstance(todo, SearchAndSummarize):
-            self.stepper.display_content += f"ALYSSA(SUMMARIZE_OR_SEARCH: TODO: Search and Summarize. QUERY: {self.content}\n\n"
+            self.stepper.display_content += f"ALYSSA(SUMMARIZE_OR_SEARCH: TOOL: Search and Summarize. QUERY: {self.content}\n\n"
             # self.event.wait()
             # self.event.clear()
             if (self.content):
@@ -148,7 +148,7 @@ class WebSummarizer(Role):
         self._set_react_mode(RoleReactMode.REACT.value, 1)
         if self.language not in ("en-us", "zh-cn"):
             logger.warning(f"The language `{self.language}` has not been tested, it may not work.")
-        self.stepper.display_content += "DAVID(WEB_SUMMARIZER): TODO: Choose tool.\n"
+        self.stepper.display_content += "DAVID(WEB_SUMMARIZER): Choosing tool.\n"
         # self.event.wait()
         # self.event.clear()
     async def _act(self) -> Message:
@@ -157,26 +157,13 @@ class WebSummarizer(Role):
         msg = self.rc.memory.get(k=1)[0]
         if isinstance(todo, URLSummarize):
             research_system_text = f'Given this query containing a url: {msg.content}, get its summary. Please respond in {self.language}.'
-            self.stepper.display_content += f"DAVID(WEB_SUMMARIZER): TODO: URLSummarize. QUERY: {research_system_text}\n"
+            self.stepper.display_content += f"DAVID(WEB_SUMMARIZER): TOOL: URLSummarize. QUERY: {research_system_text}\n"
             # self.event.wait()
             # self.event.clear()
             result = await todo.run(self.stepper, self.event, msg.content, research_system_text)
             ret = Message(content = "\n".join(result), role = self.profile, cause_by = todo)
-            # topic = [item.strip() for item in msg.content.split(",")]
-            # research_system_text = f'Given this/these urls, get their summaries: {topic}. Please respond in {self.language}.'
-            # links = topic
-            # todos = (
-            #     todo.run(url, system_text=research_system_text) for url in links if url
-            # )
-            # if self.enable_concurrency:
-            #     summaries = await asyncio.gather(*todos)
-            # else:
-            #     summaries = [await i for i in todos]
-            # ret = Message(
-            #     content="\n".join("\n".join(item) for item in summaries), role=self.profile, cause_by=todo
-            # )
         elif isinstance(todo, AnswerQuestion):
-            self.stepper.display_content += f"DAVID(WEB_SUMMARIZER): TODO: AnswerQuestion. QUERY: {msg.content}\n"
+            self.stepper.display_content += f"DAVID(WEB_SUMMARIZER): TOOL: AnswerQuestion. QUERY: {msg.content}\n"
             # self.event.wait()
             # self.event.clear()
             result= await (todo.run(msg.content))
@@ -185,11 +172,6 @@ class WebSummarizer(Role):
             ret = Message(content=msg.content, role=self.profile, cause_by = self.rc.todo)
         self.rc.memory.add(ret)
         return ret
-
-    # async def react(self) -> Message:
-    #     msg = await super().react()
-    #     report = msg.content
-    #     return report
 
 if __name__ == "__main__":
     import fire
