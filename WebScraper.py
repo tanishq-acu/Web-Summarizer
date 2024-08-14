@@ -11,11 +11,13 @@ import requests
 import io
 import fitz
 WEB_BROWSE_AND_SUMMARIZE_PROMPT = """### Requirements
-1. The bottom of this message will contain the content of the url or some more instructions for you to follow instead.
+1. The bottom of this message will contain the content of a url that you must summarize or some more instructions for you to follow instead.
 2. Include all relevant factual information, numbers, statistics, etc., if available.
 3. Only summarize content currently present in the bottom of this message.
 4. Ensure the summary is maximum 1 sentence/bullet point. 
+5. Rather than choosing no tool, choose the summarize tool
 
+### Content/Instructions
 {content}
 """
 class Report(BaseModel):
@@ -86,14 +88,17 @@ class URLSummarize(Action):
             site_type = 0
         if site_type == 0:
             contents = await self.web_browser_engine.run(url)
+            content = contents.inner_text
         else:
-            # fileStream = io.BytesIO(out.content)
-            # reader = fitz.open("pdf", fileStream)
-            # for page
-            contents = None
+            contents = ""
+            fileStream = io.BytesIO(out.content)
+            reader = fitz.open("pdf", fileStream)
+            for page in reader:
+                contents += page.get_text() + "\n"
+            content = contents
+            reader.close()
         summaries = []
         prompt_template = WEB_BROWSE_AND_SUMMARIZE_PROMPT.format(content="{}")
-        content = contents.inner_text
         self.content = content
         chunk_summaries = []
         chunks = generate_prompt_chunk(content, prompt_template, "gpt-4", system_text, 4096)
@@ -112,7 +117,7 @@ class Summarize(Action):
     i_context: Optional[str] = None
     desc: str = "Provide summaries of articles and webpages."
     async def run(self, content):
-        system_text = "You are a AI critical thinker url summarizer. Your sole purpose is to summarize the content of pages from websites or articles. Keep your summaries within 2 sentences."
+        system_text = "You are a AI critical thinker url summarizer. Your sole purpose is to summarize the content of pages from websites or articles. If there is no content to summarize, just give a description of what there is(like headers and titles). Keep your summaries within 2 sentences."
         result = await self._aask(content, [system_text])
         return result
 class SummarizeOrSearch(Role):
@@ -132,7 +137,8 @@ class SummarizeOrSearch(Role):
         if self.language not in ("en-us", "zh-cn"):
             logger.warning(f"The language `{self.language}` has not been tested, it may not work.")
     async def _act(self) -> Message:
-        logger.info(f"{self._setting}: to do {self.rc.todo}({self.rc.todo.name})")
+        if(self.rc.todo is not None):
+            logger.info(f"{self._setting}: to do {self.rc.todo}({self.rc.todo.name})")
         todo = self.rc.todo
         msg = self.rc.memory.get(k=1)[0]
         if isinstance(todo, Summarize):

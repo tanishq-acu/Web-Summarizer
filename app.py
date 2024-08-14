@@ -64,7 +64,6 @@ def get_final_output():
 def send_to_output(stepper):
     return stepper.get_output()
 def main(url: str, stepper, event):
-    print("main called")
     return str(asyncio.run(WebSummarizer(stepper=stepper, event=event).run(url)))
 if __name__ == "__main__":
     stepper = FunctionStepper()
