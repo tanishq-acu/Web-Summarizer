@@ -2,12 +2,14 @@ from metagpt.actions import Action
 from metagpt.roles.role import Role, RoleReactMode
 from metagpt.logs import logger
 from metagpt.schema import Message
-import asyncio
 from metagpt.tools.web_browser_engine import WebBrowserEngine
 from typing import Any, Callable, Optional, Union
 from search_and_summarize import SearchAndSummarize
 from pydantic import model_validator, BaseModel
 from metagpt.utils.text import generate_prompt_chunk, reduce_message_length
+import requests
+import io
+import fitz
 WEB_BROWSE_AND_SUMMARIZE_PROMPT = """### Requirements
 1. The bottom of this message will contain the content of the url or some more instructions for you to follow instead.
 2. Include all relevant factual information, numbers, statistics, etc., if available.
@@ -70,7 +72,25 @@ class URLSummarize(Action):
         url = (await self._aask(f"Given this query: {url}; get the url from the query and respond with only the url itself, and if it does not exist, respond with only 'NA'.")).strip()
         if(url == 'NA'):
             return ["Couldn't get URL from the given query."]
-        contents = await self.web_browser_engine.run(url)
+        out = requests.get(url)
+        if(out.status_code != 200):
+            print("Invalid URL in URLSummarize()")
+            return "Invalid URL"
+        type = out.headers.get("content-type")
+        if 'text/html' in type:
+            site_type = 0
+        elif 'application/pdf' in type:
+            site_type = 1
+        else:
+            print("Unknown site format, defaulting to html.")
+            site_type = 0
+        if site_type == 0:
+            contents = await self.web_browser_engine.run(url)
+        else:
+            # fileStream = io.BytesIO(out.content)
+            # reader = fitz.open("pdf", fileStream)
+            # for page
+            contents = None
         summaries = []
         prompt_template = WEB_BROWSE_AND_SUMMARIZE_PROMPT.format(content="{}")
         content = contents.inner_text
@@ -116,13 +136,17 @@ class SummarizeOrSearch(Role):
         todo = self.rc.todo
         msg = self.rc.memory.get(k=1)[0]
         if isinstance(todo, Summarize):
-            self.stepper.display_content += f"ALYSSA(SUMMARIZE_OR_SEARCH): TOOL: Summarize text. QUERY:\n {msg.content}\n\n"
+            if(len(msg.content) < 100):
+                self.stepper.display_content += f"ALYSSA(SUMMARIZE_OR_SEARCH): TOOL: Summarize text. QUERY: '{msg.content}'\n\n"
+            else:
+                disp = msg.content[:200:].replace('\n', ' ')
+                self.stepper.display_content += f"ALYSSA(SUMMARIZE_OR_SEARCH): TOOL: Summarize text. QUERY: '{disp} . . .' \n\n"
             # self.event.wait()
             # self.event.clear()
             result = await todo.run(msg.content)
             ret = Message(content = result, role =self.profile, cause_by=todo)
         elif isinstance(todo, SearchAndSummarize):
-            self.stepper.display_content += f"ALYSSA(SUMMARIZE_OR_SEARCH: TOOL: Search and Summarize. QUERY: {self.content}\n\n"
+            self.stepper.display_content += f"ALYSSA(SUMMARIZE_OR_SEARCH: TOOL: Search and Summarize. QUERY: '{self.content}'\n\n"
             # self.event.wait()
             # self.event.clear()
             if (self.content):
@@ -157,13 +181,13 @@ class WebSummarizer(Role):
         msg = self.rc.memory.get(k=1)[0]
         if isinstance(todo, URLSummarize):
             research_system_text = f'Given this query containing a url: {msg.content}, get its summary. Please respond in {self.language}.'
-            self.stepper.display_content += f"DAVID(WEB_SUMMARIZER): TOOL: URLSummarize. QUERY: {research_system_text}\n\n"
+            self.stepper.display_content += f"DAVID(WEB_SUMMARIZER): TOOL: URLSummarize. QUERY: '{research_system_text}'\n\n"
             # self.event.wait()
             # self.event.clear()
             result = await todo.run(self.stepper, self.event, msg.content, research_system_text)
             ret = Message(content = "\n".join(result), role = self.profile, cause_by = todo)
         elif isinstance(todo, AnswerQuestion):
-            self.stepper.display_content += f"DAVID(WEB_SUMMARIZER): TOOL: AnswerQuestion. QUERY: {msg.content}\n\n"
+            self.stepper.display_content += f"DAVID(WEB_SUMMARIZER): TOOL: AnswerQuestion. QUERY: '{msg.content}'\n\n"
             # self.event.wait()
             # self.event.clear()
             result= await (todo.run(msg.content))
