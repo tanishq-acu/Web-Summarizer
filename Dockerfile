@@ -11,7 +11,8 @@ COPY . .
 COPY ca.pem /root/ca.pem
 RUN pip install --upgrade pip
 RUN pip install --no-dependencies --no-cache-dir -r requirements.txt
-RUN playwright install --with-deps firefox
+RUN playwright install 
+RUN playwright install-deps
 ENV SSL_CERT_FILE="/root/ca.pem"
 CMD ["python", "app.py"]
 
