@@ -145,8 +145,8 @@ class SummarizeOrSearch(Role):
             if(len(msg.content) < 100):
                 self.stepper.display_content += f"ALYSSA(SUMMARIZE_OR_SEARCH): TOOL: Summarize text. QUERY: '{msg.content}'\n\n"
             else:
-                disp = msg.content[:200:].replace('\n', ' ')
-                self.stepper.display_content += f"ALYSSA(SUMMARIZE_OR_SEARCH): TOOL: Summarize text. QUERY: '{disp} . . .' \n\n"
+                disp = msg.content[-200::].replace('\n', ' ')
+                self.stepper.display_content += f"ALYSSA(SUMMARIZE_OR_SEARCH): TOOL: Summarize text. QUERY: '. . .{disp}. . .' \n\n"
             # self.event.wait()
             # self.event.clear()
             result = await todo.run(msg.content)
