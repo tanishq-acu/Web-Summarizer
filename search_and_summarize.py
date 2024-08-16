@@ -101,6 +101,12 @@ You are a member of a professional butler team and will provide helpful suggesti
 3. The response should be elegant, clear, without any repetition of text, smoothly written, and of moderate length.
 """
 
+EXTRACT_QUERY = """
+Given this user input: {QUERY}; 
+Create a search query that will be used to search the web for data pertaining to the user's input. 
+If you are unsure what to search for, choose a random default.
+Your response should only contain your search query as raw text and nothing else. 
+"""
 
 class SearchAndSummarize(Action):
     name: str = ""
@@ -120,14 +126,15 @@ class SearchAndSummarize(Action):
             self.search_engine = search_engine
         return self
 
-    async def run(self, context: list[Message], system_text=SEARCH_AND_SUMMARIZE_SYSTEM) -> str:
+    async def run(self, context: list[Message], stepper, system_text=SEARCH_AND_SUMMARIZE_SYSTEM) -> str:
         if self.search_engine is None:
             logger.warning("Configure one of SERPAPI_API_KEY, SERPER_API_KEY, GOOGLE_API_KEY to unlock full feature")
             return ""
-
+        stepper.display_content += f"ALYSSA(SUMMARIZE_OR_SEARCH): Extracting URL from user query and conducting web search. \n\n"
         query = context[-1].content
         logger.debug(query)
-        rsp = await self.search_engine.run(query)
+        search_text = await self._aask(EXTRACT_QUERY.format(QUERY=query))
+        rsp = await self.search_engine.run(search_text)
         self.result = rsp
         if not rsp:
             logger.error("empty rsp...")
