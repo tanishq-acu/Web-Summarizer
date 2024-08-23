@@ -10,6 +10,9 @@ from metagpt.utils.text import generate_prompt_chunk, reduce_message_length
 import requests
 import io
 import fitz
+from metagpt.const import USE_CONFIG_TIMEOUT
+import os
+import yaml
 SUMMARIZE_PROMPT = """
 You are a AI critical thinker url summarizer. Your sole purpose is to summarize the content of pages from websites or articles. 
 If there is no content to summarize, just give a description of what there is(like headers and titles). Keep your summaries within 2 sentences.
@@ -36,11 +39,69 @@ class AnswerQuestion(Action):
 
     name: str = "AnswerQuestion"
     i_context: Optional[str] = None
-    desc: str = "Answer a user's query."
+    desc: str = "Answer any miscellaneous user query. Includes anything about images."
 
-    async def run(self, query):
-        result = await self._aask(query)
+    async def run(self, query: str, image_id: str | None):
+        result = await self._aask(query, image_id)
         return result
+    
+    async def _aask(self, prompt: str, image_id: str | None, system_msgs: Optional[list[str]] = None, format_msgs: Optional[list[dict[str, str]]] = None) -> str:
+        """
+        Append default prefix, make LLM API call.
+        """
+        if system_msgs:
+            message = self.llm._system_msgs(system_msgs)
+        else:
+            message = [self.llm._default_system_msg()]
+        if not self.llm.use_system_prompt:
+            message = []
+        if format_msgs: 
+            message.extend(format_msgs)
+        if isinstance(prompt, str):
+            message.append(self.llm._user_msg(prompt))
+        stream = self.llm.config.stream
+        logger.debug(message)
+        if image_id is not None:
+            for i in range(len(message)):
+                if message[i]["role"] == "user":
+                    content = [{"type":"text", "text": (message[i]["content"])}, {"type": "image_url", "image_url": {"url" : f"data:image/jpeg;base64,{image_id}"}}]
+                    message[i]["content"] = content
+            rsp = await self.completion(message,timeout = self.llm.get_timeout(USE_CONFIG_TIMEOUT))
+        else:
+            rsp = await self.llm.acompletion_text(message, stream=stream, timeout = self.llm.get_timeout(USE_CONFIG_TIMEOUT))
+        return rsp
+    
+    async def completion(self, messages: list[dict], timeout: int = USE_CONFIG_TIMEOUT):
+        path_to_config = "~/.metagpt/config2.yaml"
+        path_to_config = os.path.expanduser(path_to_config)
+        file = open(path_to_config)
+        api_key = None
+        try:
+            config = yaml.safe_load(file)
+            api_key = config.get('llm', {}).get('api_key')
+            model = config.get('llm', {}).get('model')
+        except yaml.YAMLError as e:
+            print("Error in config2.yaml file.")
+            exit(1)
+        if api_key is None:
+            print("LLM api key not found in config2.yaml")
+            exit(1)
+        if model is None:
+            print("Model is not found in config2.yaml")
+        headers = {
+            "Content-Type": "application/json",
+            "Authorization": f"Bearer {api_key}"
+        }
+        payload = {
+            "model": model,
+            "messages": messages,
+        }
+        resp = requests.post("https://api.openai.com/v1/chat/completions", headers=headers, json=payload)
+        if resp.status_code != 200:
+                print("Failed to call OpenAI with image.")
+                return ""
+        resp = resp.json()
+        return resp["choices"][0]["message"]["content"]
 
 class URLSummarize(Action):
     """Action class to explore the web and provide summaries of articles and webpages."""
@@ -91,7 +152,8 @@ class URLSummarize(Action):
         out = requests.get(url)
         if(out.status_code != 200):
             print("Invalid URL in URLSummarize()")
-            return "Invalid URL"
+            stepper.display_content +=  "Invalid URL\n\n"
+            return ""
         
         type = out.headers.get("content-type")
 
@@ -126,14 +188,20 @@ class URLSummarize(Action):
         chunks = generate_prompt_chunk(content, prompt_template, "gpt-4", system_text, 4096)
 
         role = SummarizeOrSearch(stepper=stepper, event=event, content=self.content,language="en-us")
+        count = 0
         for prompt in chunks:
+            if count >= 3:
+                break
             stepper.display_content += f"DAVID(WEB_SUMMARIZER): Calling Alyssa(SummarizeOrSearch) with URL Contents.\n\n"
             summary = await role.run(prompt)
             chunk_summaries.append(summary.content)
+            count +=1
         
         if len(chunk_summaries) == 1:
             summaries.append(chunk_summaries[0])
-
+        else:
+            for chunk in chunk_summaries:
+                summaries.append(chunk)
         return summaries
 class Summarize(Action):
     name: str = "Summarize Tool"
@@ -148,7 +216,7 @@ class Summarize(Action):
 class SummarizeOrSearch(Role):
     name: str = "Alyssa"
     profile: str = "Summarizer or Searcher"
-    goal: str = "Given some text, summarize it."
+    goal: str = "Given some text, summarize it. If you don't know which tool to pick, always pick Summarize over nothing."
     constraints: str = "Ensure your summary is accurate and concise."
     language: str = "en-us"
 
@@ -173,10 +241,10 @@ class SummarizeOrSearch(Role):
         msg = self.rc.memory.get(k=1)[0]
 
         if isinstance(todo, Summarize):
-            if(len(msg.content) < 100):
+            if(len(msg.content) < 200):
                 self.stepper.display_content += f"ALYSSA(SUMMARIZE_OR_SEARCH): TOOL: Summarize text. QUERY: '{msg.content}'\n\n"
             else:
-                disp = msg.content[-200::].replace('\n', ' ')
+                disp = msg.content[-200:-75:].replace('\n', ' ')
                 self.stepper.display_content += f"ALYSSA(SUMMARIZE_OR_SEARCH): TOOL: Summarize text. QUERY: '. . .{disp}. . .' \n\n"
             result = await todo.run(msg.content)
             ret = Message(content = result, role =self.profile, cause_by=todo)
@@ -190,7 +258,13 @@ class SummarizeOrSearch(Role):
             ret = Message(content = result, role = self.profile, cause_by = todo)
 
         else:
-            ret = Message(content=msg.content, role=self.profile, cause_by = self.rc.todo)
+            if(len(msg.content) < 200):
+                self.stepper.display_content += f"ALYSSA(SUMMARIZE_OR_SEARCH): TOOL: Summarize text. QUERY: '{msg.content}'\n\n"
+            else:
+                disp = msg.content[-200:-75:].replace('\n', ' ')
+                self.stepper.display_content += f"ALYSSA(SUMMARIZE_OR_SEARCH): TOOL: Summarize text. QUERY: '. . .{disp}. . .' \n\n"
+            result = await Summarize().run(msg.content)
+            ret = Message(content = result, role =self.profile, cause_by=Summarize)
 
         return ret
     
@@ -198,13 +272,13 @@ class WebSummarizer(Role):
     name: str = "David"
     profile: str = "Web Summarizer"
     goal: str = "Answer the user's queries. If given a url or list of urls, get a summary of each of their page contents"
-    constraints: str = "ensure your responses are accurate"
+    constraints: str = "Ensure your responses are accurate. Don't ever pick no tool (-1) when choosing an action."
     language: str = "en-us"
     enable_concurrency: bool = True
 
-    def __init__(self, stepper, event, **kwargs):
+    def __init__(self, stepper, event, file, **kwargs):
         super().__init__(**kwargs)
-
+        self.image_base64 = file
         self.stepper = stepper
         self.event = event
         self.set_actions([AnswerQuestion, URLSummarize])
@@ -215,7 +289,8 @@ class WebSummarizer(Role):
 
         self.stepper.display_content += "DAVID(WEB_SUMMARIZER): Choosing tool.\n\n"
     async def _act(self) -> Message:
-        logger.info(f"{self._setting}: to do {self.rc.todo}({self.rc.todo.name})")
+        if self.rc.todo is not None:
+            logger.info(f"{self._setting}: to do {self.rc.todo}({self.rc.todo.name})")
         todo = self.rc.todo
         msg = self.rc.memory.get(k=1)[0]
 
@@ -227,11 +302,13 @@ class WebSummarizer(Role):
 
         elif isinstance(todo, AnswerQuestion):
             self.stepper.display_content += f"DAVID(WEB_SUMMARIZER): TOOL: AnswerQuestion. QUERY: '{msg.content}'\n\n"
-            result= await (todo.run(msg.content))
+            result= await (todo.run(msg.content, self.image_base64))
             ret = Message(content = result, role =self.profile, cause_by=todo)
             
         else:
-            ret = Message(content=msg.content, role=self.profile, cause_by = self.rc.todo)
+            self.stepper.display_content += f"DAVID(WEB_SUMMARIZER): TOOL: AnswerQuestion. QUERY: '{msg.content}'\n\n"
+            result= await (AnswerQuestion().run(msg.content, self.image_base64))
+            ret = Message(content = result, role =self.profile, cause_by=AnswerQuestion)
 
         self.rc.memory.add(ret)
         return ret
