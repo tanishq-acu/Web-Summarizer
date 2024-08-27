@@ -1,0 +1,179 @@
+<!DOCTYPE html PUBLIC "-//W3C//DTD HTML 4.0 Transitional//EN">
+<html><head><title>Python: module app</title>
+<meta http-equiv="Content-Type" content="text/html; charset=utf-8">
+</head><body bgcolor="#f0f0f8">
+
+<table width="100%" cellspacing=0 cellpadding=2 border=0 summary="heading">
+<tr bgcolor="#7799ee">
+<td valign=bottom>&nbsp;<br>
+<font color="#ffffff" face="helvetica, arial">&nbsp;<br><big><big><strong>app</strong></big></big></font></td
+><td align=right valign=bottom
+><font color="#ffffff" face="helvetica, arial"><a href=".">index</a><br><a href="file:/Users/tanishq/Documents/MetaGPT/WebSummarizer/app.py">/Users/tanishq/Documents/MetaGPT/WebSummarizer/app.py</a></font></td></tr></table>
+    <p></p>
+<p>
+<table width="100%" cellspacing=0 cellpadding=2 border=0 summary="section">
+<tr bgcolor="#aa55cc">
+<td colspan=3 valign=bottom>&nbsp;<br>
+<font color="#ffffff" face="helvetica, arial"><big><strong>Modules</strong></big></font></td></tr>
+    
+<tr><td bgcolor="#aa55cc"><tt>&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;</tt></td><td>&nbsp;</td>
+<td width="100%"><table width="100%" summary="list"><tr><td width="25%" valign=top><a href="PIL.Image.html">PIL.Image</a><br>
+<a href="asyncio.html">asyncio</a><br>
+</td><td width="25%" valign=top><a href="base64.html">base64</a><br>
+<a href="gradio.html">gradio</a><br>
+</td><td width="25%" valign=top><a href="io.html">io</a><br>
+<a href="threading.html">threading</a><br>
+</td><td width="25%" valign=top></td></tr></table></td></tr></table><p>
+<table width="100%" cellspacing=0 cellpadding=2 border=0 summary="section">
+<tr bgcolor="#ee77aa">
+<td colspan=3 valign=bottom>&nbsp;<br>
+<font color="#ffffff" face="helvetica, arial"><big><strong>Classes</strong></big></font></td></tr>
+    
+<tr><td bgcolor="#ee77aa"><tt>&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;</tt></td><td>&nbsp;</td>
+<td width="100%"><dl>
+<dt><font face="helvetica, arial"><a href="builtins.html#object">builtins.object</a>
+</font></dt><dd>
+<dl>
+<dt><font face="helvetica, arial"><a href="app.html#AgentInterface">AgentInterface</a>
+</font></dt><dt><font face="helvetica, arial"><a href="app.html#FunctionStepper">FunctionStepper</a>
+</font></dt></dl>
+</dd>
+</dl>
+ <p>
+<table width="100%" cellspacing=0 cellpadding=2 border=0 summary="section">
+<tr bgcolor="#ffc8d8">
+<td colspan=3 valign=bottom>&nbsp;<br>
+<font color="#000000" face="helvetica, arial"><a name="AgentInterface">class <strong>AgentInterface</strong></a>(<a href="builtins.html#object">builtins.object</a>)</font></td></tr>
+    
+<tr bgcolor="#ffc8d8"><td rowspan=2><tt>&nbsp;&nbsp;&nbsp;</tt></td>
+<td colspan=2><tt><a href="#AgentInterface">AgentInterface</a>(event:&nbsp;threading.Event,&nbsp;stepper:&nbsp;app.<a href="#FunctionStepper">FunctionStepper</a>,&nbsp;thread=None)&nbsp;-&amp;gt;&nbsp;None<br>
+&nbsp;<br>
+<a href="#AgentInterface">AgentInterface</a>&nbsp;is&nbsp;the&nbsp;class&nbsp;by&nbsp;which&nbsp;an&nbsp;application&nbsp;can&nbsp;interact&nbsp;with&nbsp;the&nbsp;MetaGPT&nbsp;agent.<br>&nbsp;</tt></td></tr>
+<tr><td>&nbsp;</td>
+<td width="100%">Methods defined here:<br>
+<dl><dt><a name="AgentInterface-__init__"><strong>__init__</strong></a>(self, event: threading.Event, stepper: app.FunctionStepper, thread=None) -&gt; None</dt><dd><tt>Initialize&nbsp;self.&nbsp;&nbsp;See&nbsp;help(type(self))&nbsp;for&nbsp;accurate&nbsp;signature.</tt></dd></dl>
+
+<dl><dt><a name="AgentInterface-encode_image"><strong>encode_image</strong></a>(self, image_path)</dt><dd><tt>Encode&nbsp;an&nbsp;image&nbsp;in&nbsp;base64&nbsp;to&nbsp;pass&nbsp;it&nbsp;to&nbsp;the&nbsp;chatGPT&nbsp;API.<br>
+&nbsp;<br>
+Args:<br>
+&nbsp;&nbsp;&nbsp;&nbsp;image_path:&nbsp;The&nbsp;resized&nbsp;and&nbsp;encoded&nbsp;image.&nbsp;<br>
+Returns:<br>
+&nbsp;&nbsp;&nbsp;&nbsp;Image&nbsp;in&nbsp;base64&nbsp;encoding.</tt></dd></dl>
+
+<dl><dt><a name="AgentInterface-get_final_output"><strong>get_final_output</strong></a>(self)</dt><dd><tt>Returns:<br>
+&nbsp;&nbsp;&nbsp;&nbsp;str:&nbsp;The&nbsp;current&nbsp;final&nbsp;output&nbsp;of&nbsp;the&nbsp;agent.</tt></dd></dl>
+
+<dl><dt><a name="AgentInterface-go_next"><strong>go_next</strong></a>(self) -&gt; None</dt><dd><tt>Set&nbsp;thread&nbsp;event&nbsp;to&nbsp;continue&nbsp;agent&nbsp;execution&nbsp;(if&nbsp;step-by-step)<br>
+&nbsp;<br>
+Returns:<br>
+&nbsp;&nbsp;&nbsp;&nbsp;None</tt></dd></dl>
+
+<dl><dt><a name="AgentInterface-image_example"><strong>image_example</strong></a>(self, text: str, image_path: str)</dt><dd><tt>Used&nbsp;to&nbsp;run&nbsp;an&nbsp;image&nbsp;example.<br>
+&nbsp;<br>
+Args:<br>
+&nbsp;&nbsp;&nbsp;&nbsp;text:&nbsp;The&nbsp;query&nbsp;that&nbsp;is&nbsp;being&nbsp;asked&nbsp;on&nbsp;the&nbsp;image.<br>
+&nbsp;&nbsp;&nbsp;&nbsp;image_path:&nbsp;Path&nbsp;to&nbsp;the&nbsp;uploaded&nbsp;image.&nbsp;<br>
+Returns:<br>
+&nbsp;&nbsp;&nbsp;&nbsp;Output&nbsp;of&nbsp;the&nbsp;start&nbsp;method.</tt></dd></dl>
+
+<dl><dt><a name="AgentInterface-process_file"><strong>process_file</strong></a>(self, file)</dt><dd><tt>Process&nbsp;a&nbsp;file&nbsp;into&nbsp;our&nbsp;interface&nbsp;structure.<br>
+&nbsp;<br>
+Args:<br>
+&nbsp;&nbsp;&nbsp;&nbsp;file:&nbsp;The&nbsp;uploaded&nbsp;file's&nbsp;path.<br>
+Returns:<br>
+&nbsp;&nbsp;&nbsp;&nbsp;None</tt></dd></dl>
+
+<dl><dt><a name="AgentInterface-process_search"><strong>process_search</strong></a>(self, url: str | None) -&gt; str</dt><dd><tt>Run&nbsp;agent&nbsp;execution&nbsp;and&nbsp;set&nbsp;agent's&nbsp;final&nbsp;output.<br>
+&nbsp;<br>
+Args:<br>
+&nbsp;&nbsp;&nbsp;&nbsp;url:&nbsp;The&nbsp;URL&nbsp;to&nbsp;summarize/the&nbsp;prompt&nbsp;to&nbsp;follow.<br>
+Returns:<br>
+&nbsp;&nbsp;&nbsp;&nbsp;The&nbsp;agent's&nbsp;final&nbsp;output.</tt></dd></dl>
+
+<dl><dt><a name="AgentInterface-reset"><strong>reset</strong></a>(self)</dt><dd><tt>Reset&nbsp;all&nbsp;output&nbsp;fields&nbsp;and&nbsp;terminate&nbsp;thread.<br>
+&nbsp;<br>
+Returns:<br>
+&nbsp;&nbsp;&nbsp;&nbsp;A&nbsp;tuple&nbsp;containing&nbsp;default&nbsp;text&nbsp;to&nbsp;display.</tt></dd></dl>
+
+<dl><dt><a name="AgentInterface-run"><strong>run</strong></a>(self, url: str)</dt><dd><tt>Run&nbsp;our&nbsp;agent.<br>
+&nbsp;<br>
+Args:<br>
+&nbsp;&nbsp;&nbsp;&nbsp;url:&nbsp;The&nbsp;URL&nbsp;to&nbsp;summarize/the&nbsp;prompt&nbsp;to&nbsp;follow.<br>
+Returns:<br>
+&nbsp;&nbsp;&nbsp;&nbsp;Agent&nbsp;output&nbsp;formatted&nbsp;as&nbsp;a&nbsp;string.</tt></dd></dl>
+
+<dl><dt><a name="AgentInterface-send_to_output"><strong>send_to_output</strong></a>(self)</dt><dd><tt>Get&nbsp;the&nbsp;current&nbsp;display&nbsp;content&nbsp;from&nbsp;the&nbsp;stepper&nbsp;<a href="builtins.html#object">object</a>.<br>
+&nbsp;<br>
+Returns:<br>
+&nbsp;&nbsp;&nbsp;&nbsp;str:&nbsp;The&nbsp;current&nbsp;display&nbsp;content&nbsp;of&nbsp;the&nbsp;<a href="#FunctionStepper">FunctionStepper</a>.</tt></dd></dl>
+
+<dl><dt><a name="AgentInterface-start"><strong>start</strong></a>(self, url: str | None) -&gt; str</dt><dd><tt>Create&nbsp;a&nbsp;thread&nbsp;to&nbsp;begin&nbsp;running&nbsp;agent&nbsp;execution&nbsp;with&nbsp;the&nbsp;given&nbsp;url.<br>
+&nbsp;<br>
+Args:<br>
+&nbsp;&nbsp;&nbsp;&nbsp;url:&nbsp;The&nbsp;URL&nbsp;to&nbsp;summarize/the&nbsp;prompt&nbsp;to&nbsp;follow.<br>
+Returns:<br>
+&nbsp;&nbsp;&nbsp;&nbsp;A&nbsp;list&nbsp;with&nbsp;summaries.</tt></dd></dl>
+
+<hr>
+Data descriptors defined here:<br>
+<dl><dt><strong>__dict__</strong></dt>
+<dd><tt>dictionary&nbsp;for&nbsp;instance&nbsp;variables&nbsp;(if&nbsp;defined)</tt></dd>
+</dl>
+<dl><dt><strong>__weakref__</strong></dt>
+<dd><tt>list&nbsp;of&nbsp;weak&nbsp;references&nbsp;to&nbsp;the&nbsp;object&nbsp;(if&nbsp;defined)</tt></dd>
+</dl>
+</td></tr></table> <p>
+<table width="100%" cellspacing=0 cellpadding=2 border=0 summary="section">
+<tr bgcolor="#ffc8d8">
+<td colspan=3 valign=bottom>&nbsp;<br>
+<font color="#000000" face="helvetica, arial"><a name="FunctionStepper">class <strong>FunctionStepper</strong></a>(<a href="builtins.html#object">builtins.object</a>)</font></td></tr>
+    
+<tr bgcolor="#ffc8d8"><td rowspan=2><tt>&nbsp;&nbsp;&nbsp;</tt></td>
+<td colspan=2><tt><a href="#FunctionStepper">FunctionStepper</a>&nbsp;allows&nbsp;you&nbsp;to&nbsp;step&nbsp;through&nbsp;a&nbsp;program's&nbsp;execution&nbsp;and&nbsp;send&nbsp;display&nbsp;text&nbsp;to&nbsp;an&nbsp;application.<br>&nbsp;</tt></td></tr>
+<tr><td>&nbsp;</td>
+<td width="100%">Methods defined here:<br>
+<dl><dt><a name="FunctionStepper-__init__"><strong>__init__</strong></a>(self)</dt><dd><tt>Initialize&nbsp;function&nbsp;stepper.<br>
+&nbsp;<br>
+Returns:<br>
+&nbsp;&nbsp;&nbsp;&nbsp;None</tt></dd></dl>
+
+<dl><dt><a name="FunctionStepper-get_output"><strong>get_output</strong></a>(self) -&gt; str</dt><dd><tt>Get&nbsp;the&nbsp;display&nbsp;content&nbsp;from&nbsp;the&nbsp;current&nbsp;execution.<br>
+&nbsp;<br>
+Returns:<br>
+&nbsp;&nbsp;&nbsp;&nbsp;Text&nbsp;(str)&nbsp;to&nbsp;display.</tt></dd></dl>
+
+<dl><dt><a name="FunctionStepper-next_pressed"><strong>next_pressed</strong></a>(self)</dt><dd><tt>Increment&nbsp;state&nbsp;to&nbsp;step&nbsp;through&nbsp;execution.<br>
+&nbsp;<br>
+Returns:<br>
+&nbsp;&nbsp;&nbsp;&nbsp;None</tt></dd></dl>
+
+<hr>
+Data descriptors defined here:<br>
+<dl><dt><strong>__dict__</strong></dt>
+<dd><tt>dictionary&nbsp;for&nbsp;instance&nbsp;variables&nbsp;(if&nbsp;defined)</tt></dd>
+</dl>
+<dl><dt><strong>__weakref__</strong></dt>
+<dd><tt>list&nbsp;of&nbsp;weak&nbsp;references&nbsp;to&nbsp;the&nbsp;object&nbsp;(if&nbsp;defined)</tt></dd>
+</dl>
+</td></tr></table></td></tr></table><p>
+<table width="100%" cellspacing=0 cellpadding=2 border=0 summary="section">
+<tr bgcolor="#eeaa77">
+<td colspan=3 valign=bottom>&nbsp;<br>
+<font color="#ffffff" face="helvetica, arial"><big><strong>Functions</strong></big></font></td></tr>
+    
+<tr><td bgcolor="#eeaa77"><tt>&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;</tt></td><td>&nbsp;</td>
+<td width="100%"><dl><dt><a name="-build_application"><strong>build_application</strong></a>(interface: app.AgentInterface)</dt><dd><tt>Build&nbsp;and&nbsp;launch&nbsp;gradio&nbsp;application&nbsp;containing&nbsp;Agent.<br>
+&nbsp;<br>
+Args:<br>
+&nbsp;&nbsp;&nbsp;&nbsp;interface:&nbsp;The&nbsp;<a href="#AgentInterface">AgentInterface</a>&nbsp;to&nbsp;connect&nbsp;to&nbsp;the&nbsp;application.<br>
+Returns:<br>
+&nbsp;&nbsp;&nbsp;&nbsp;None</tt></dd></dl>
+</td></tr></table><p>
+<table width="100%" cellspacing=0 cellpadding=2 border=0 summary="section">
+<tr bgcolor="#55aa55">
+<td colspan=3 valign=bottom>&nbsp;<br>
+<font color="#ffffff" face="helvetica, arial"><big><strong>Data</strong></big></font></td></tr>
+    
+<tr><td bgcolor="#55aa55"><tt>&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;</tt></td><td>&nbsp;</td>
+<td width="100%"><strong>THEME</strong> = &lt;gradio.themes.base.Base object&gt;</td></tr></table>
+</body></html>

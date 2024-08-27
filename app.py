@@ -6,8 +6,6 @@ import base64
 from PIL import Image
 import io
 
-## TODO: clean up code, for demo, add some buttons on the sides with examples that people can click instead of typing 'summarize...'. Green buttons for normal prompts, red buttons for prompt injections/malicious prompts.
-
 # Constants
 THEME = gr.themes.Base(
     primary_hue="red",
@@ -29,11 +27,14 @@ THEME = gr.themes.Base(
 
 class FunctionStepper:
     """
-    # TODO: Add pydocs to this class.
+    FunctionStepper allows you to step through a program's execution and send display text to an application.
     """
     def __init__(self):
         """
         Initialize function stepper.
+
+        Returns:
+            None
         """
         self.state= 0
         self.display_content = ""
@@ -42,6 +43,8 @@ class FunctionStepper:
         """
         Increment state to step through execution.
 
+        Returns:
+            None
         """
         self.state +=1
 
@@ -56,7 +59,7 @@ class FunctionStepper:
 
 class AgentInterface:
     """
-    # TODO: Add pydocs to this class.
+    AgentInterface is the class by which an application can interact with the MetaGPT agent. 
     """
     def __init__(self, event: threading.Event, stepper: FunctionStepper, thread=None) -> None:
         self.thread = thread
@@ -83,6 +86,9 @@ class AgentInterface:
     def go_next(self) -> None:
         """
         Set thread event to continue agent execution (if step-by-step)
+
+        Returns:
+            None
         """
 
         if(self.thread is None):
@@ -123,6 +129,11 @@ class AgentInterface:
     def process_file(self, file):
         """
         Process a file into our interface structure.
+    
+        Args:
+            file: The uploaded file's path.
+        Returns:
+            None
         """
         self.reset()
         self.file_path = file
@@ -151,17 +162,29 @@ class AgentInterface:
         return "", "", "", None
 
     def get_final_output(self):
+        """
+        Returns:
+            str: The current final output of the agent.
+        """
         return self.agent_disp
 
     def send_to_output(self):
         """
         Get the current display content from the stepper object.
+        
+        Returns:
+            str: The current display content of the FunctionStepper.
         """
         return self.stepper.get_output()
 
     def encode_image(self, image_path):
         """
         Encode an image in base64 to pass it to the chatGPT API.
+        
+        Args:
+            image_path: The resized and encoded image. 
+        Returns:
+            Image in base64 encoding. 
         """
         image = Image.open(image_path)
         image.thumbnail((300,300), Image.Resampling.LANCZOS)
@@ -172,7 +195,9 @@ class AgentInterface:
     def run(self, url: str):
         """
         Run our agent.
-
+        
+        Args:
+            url: The URL to summarize/the prompt to follow.
         Returns:
             Agent output formatted as a string.
         """
@@ -187,6 +212,12 @@ class AgentInterface:
     def image_example(self, text: str, image_path: str):
         """
         Used to run an image example.
+
+        Args:
+            text: The query that is being asked on the image.
+            image_path: Path to the uploaded image. 
+        Returns:
+            Output of the start method.
         """
         self.process_file(image_path)
         return self.start(text)
@@ -194,6 +225,11 @@ class AgentInterface:
 def build_application(interface: AgentInterface):
     """
     Build and launch gradio application containing Agent.
+
+    Args:
+        interface: The AgentInterface to connect to the application.
+    Returns:
+        None
     """
     with gr.Blocks(fill_height = True, theme=THEME) as iface: ## Optional: add next button tied to go_next() for step-by-step execution.
         gr.Markdown("<div style='text-align: center; font-size: 30px; font-weight: bold;'>LLM-Agent Demo</div>")
