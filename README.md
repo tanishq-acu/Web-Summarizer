@@ -32,7 +32,9 @@ arize:
     space_key: "<>"
     
 -To build:
+```
 docker build -t "<tag>" path_to_app_folder
+```
 
 
 -To run container:
