@@ -14,6 +14,10 @@ RUN pip install --no-dependencies --no-cache-dir -r requirements.txt && \
     playwright install && \
     playwright install-deps
 
+RUN pip install flask fastapi
+RUN pip install opentelemetry-instrumentation-django opentelemetry-instrumentation-fastapi opentelemetry-instrumentation-flask
+RUN pip install opentelemetry-exporter-jaeger
+RUN pip install acutracer==0.1.10
 # Add code and setup env vars
 COPY . .
 ENV SSL_CERT_FILE="/certs/ca.pem"

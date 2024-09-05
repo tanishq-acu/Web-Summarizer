@@ -1,10 +1,15 @@
-import gradio as gr
 import asyncio
-from WebScraper import WebSummarizer
-import threading
 import base64
-from PIL import Image
 import io
+import threading
+
+import gradio as gr
+from acutracer.instrumentors.python.webapi.instrumentor import (
+    WebAPIInstrumentor,
+)
+from PIL import Image
+
+from WebScraper import WebSummarizer
 
 # Constants
 THEME = gr.themes.Base(
@@ -59,7 +64,7 @@ class FunctionStepper:
 
 class AgentInterface:
     """
-    AgentInterface is the class by which an application can interact with the MetaGPT agent. 
+    AgentInterface is the class by which an application can interact with the MetaGPT agent.
     """
     def __init__(self, event: threading.Event, stepper: FunctionStepper, thread=None) -> None:
         self.thread = thread
@@ -129,7 +134,7 @@ class AgentInterface:
     def process_file(self, file):
         """
         Process a file into our interface structure.
-    
+
         Args:
             file: The uploaded file's path.
         Returns:
@@ -171,7 +176,7 @@ class AgentInterface:
     def send_to_output(self):
         """
         Get the current display content from the stepper object.
-        
+
         Returns:
             str: The current display content of the FunctionStepper.
         """
@@ -180,11 +185,11 @@ class AgentInterface:
     def encode_image(self, image_path):
         """
         Encode an image in base64 to pass it to the chatGPT API.
-        
+
         Args:
-            image_path: The resized and encoded image. 
+            image_path: The resized and encoded image.
         Returns:
-            Image in base64 encoding. 
+            Image in base64 encoding.
         """
         image = Image.open(image_path)
         image.thumbnail((300,300), Image.Resampling.LANCZOS)
@@ -195,7 +200,7 @@ class AgentInterface:
     def run(self, url: str):
         """
         Run our agent.
-        
+
         Args:
             url: The URL to summarize/the prompt to follow.
         Returns:
@@ -215,7 +220,7 @@ class AgentInterface:
 
         Args:
             text: The query that is being asked on the image.
-            image_path: Path to the uploaded image. 
+            image_path: Path to the uploaded image.
         Returns:
             Output of the start method.
         """
@@ -282,6 +287,12 @@ def build_application(interface: AgentInterface):
         iface.load(lambda: interface.send_to_output(), None, outputs=outputs, every = 0.1)
         iface.load(lambda: interface.get_final_output(), None, outputs=final_output, every = 0.1)
 
+    # Initialize the WebAPIInstrumentor
+    instrumentor = WebAPIInstrumentor(name="gradio-llm-agent")
+
+    # Apply instrumentation to the Gradio interface
+    instrumentor.instrument_gradio(iface)
+
     iface.launch(server_port=7860, server_name="0.0.0.0")
 
 
@@ -292,26 +303,6 @@ if __name__ == "__main__":
     event = threading.Event()
     interface = AgentInterface(event, stepper)
 ## End initializing AgentInterface
-
-## Initializing Arize
-    # path_to_config = "~/.metagpt/config2.yaml"
-    # path_to_config = os.path.expanduser(path_to_config)
-    # file = open(path_to_config)
-    # try:
-    #     config = yaml.safe_load(file)
-    #     api_key = config.get('arize', {}).get('api_key')
-    #     space_key = config.get('arize', {}).get('space_key')
-    # except yaml.YAMLError as e:
-    #     print("Error in config2.yaml file.")
-    #     exit(1)
-    # register_otel(
-    #     endpoints = Endpoints.ARIZE,
-    #     space_key = space_key,
-    #     api_key = api_key,
-    #     model_id = "Web-Summarizer-Model",
-    # )
-    # OpenAIInstrumentor().instrument()
-# End initializing Arize
 
 # Build Gradio App
     build_application(interface)
